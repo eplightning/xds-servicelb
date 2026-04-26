@@ -17,10 +17,11 @@ limitations under the License.
 package main
 
 import (
+	"os"
+
 	"github.com/eplightning/xds-servicelb/internal"
 	"github.com/eplightning/xds-servicelb/internal/graph"
 	"github.com/eplightning/xds-servicelb/internal/xds"
-	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -57,7 +58,9 @@ func main() {
 
 	svcGraph := graph.NewServiceGraph(config, logger)
 	xdsSrv := xds.NewXDSServer(logger, svcGraph.GetCache(), xds.XDSOptions{
-		Address: config.XDSAddr,
+		Address:            config.XDSAddr,
+		TLSCertificatePath: config.XDSTLSCertificatePath,
+		TLSKeyPath:         config.XDSTLSKeyPath,
 	})
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -74,7 +77,7 @@ func main() {
 	}
 
 	svcReconciler := controller.NewServiceReconciler(
-		mgr.GetClient(), mgr.GetScheme(), mgr.GetEventRecorderFor("xds-servicelb"), svcGraph, config,
+		mgr.GetClient(), mgr.GetScheme(), mgr.GetEventRecorder("xds-servicelb"), svcGraph, config,
 	)
 
 	if err = svcReconciler.SetupWithManager(mgr); err != nil {

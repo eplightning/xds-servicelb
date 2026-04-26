@@ -40,6 +40,12 @@ Given the nature of this controller its very likely you will need to customize f
 - `--ingress-status=ip1,ip2,host` - IPs/hostnames to use for load balancer ingress status field
 - `--address-source=endpoint|node` - What to use as a source for endpoint addresses (node or endpoint)
 - `--node-address-type=ExternalIP` - Which node addresses to use (only applicable for address-source=node)
+- `--xds-tls-certificate-path=path` - Path to TLS certificate for xDS server (optional)
+- `--xds-tls-key-path=path` - Path to TLS key for xDS server (optional)
+
+### TLS
+
+TLS is optional and will be disabled if one of the paths is missing. When provided, TLS certificate and key support rotation and will be reloaded every 5 minutes.
 
 ## Supported annotations
 

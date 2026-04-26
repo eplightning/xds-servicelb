@@ -20,6 +20,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/netip"
+	"sort"
+	"time"
+
 	"github.com/eplightning/xds-servicelb/internal"
 	"github.com/eplightning/xds-servicelb/internal/graph"
 	corev1 "k8s.io/api/core/v1"
@@ -28,16 +32,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/utils/net"
-	"net/netip"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sort"
-	"time"
 )
 
 const (
@@ -55,11 +56,11 @@ type ServiceReconciler struct {
 	scheme   *runtime.Scheme
 	graph    *graph.ServiceGraph
 	config   *internal.Config
-	recorder record.EventRecorder
+	recorder events.EventRecorder
 }
 
 func NewServiceReconciler(
-	c client.Client, scheme *runtime.Scheme, recorder record.EventRecorder, graph *graph.ServiceGraph, config *internal.Config,
+	c client.Client, scheme *runtime.Scheme, recorder events.EventRecorder, graph *graph.ServiceGraph, config *internal.Config,
 ) *ServiceReconciler {
 	return &ServiceReconciler{
 		Client:   c,
@@ -96,7 +97,14 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	ports := r.getServicePorts(&svc)
 	for _, port := range ports {
 		if r.graph.Conflicts(req.NamespacedName, port) {
-			r.recorder.Eventf(&svc, "Warning", "Conflict", "Service could not be allocated due to a conflicting port %v", port.String())
+			r.recorder.Eventf(
+				&svc,
+				nil,
+				corev1.EventTypeWarning,
+				"Reconcile",
+				"Conflict",
+				"Service could not be allocated due to a conflicting port %v",
+				port.String())
 
 			return ctrl.Result{RequeueAfter: 1 * time.Minute}, nil
 		}
@@ -352,7 +360,8 @@ func (r *ServiceReconciler) updateStatus(ctx context.Context, svc *corev1.Servic
 	for _, addr := range r.config.IngressStatus {
 		if addr.IP != nil {
 			ing = append(ing, corev1.LoadBalancerIngress{
-				IP: addr.IP.String(),
+				IP:     addr.IP.String(),
+				IPMode: new(corev1.LoadBalancerIPModeProxy),
 			})
 		} else {
 			ing = append(ing, corev1.LoadBalancerIngress{

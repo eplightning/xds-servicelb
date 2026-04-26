@@ -2,6 +2,8 @@ package graph
 
 import (
 	"fmt"
+	"strings"
+
 	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -14,7 +16,6 @@ import (
 	"github.com/eplightning/xds-servicelb/internal/graph/envoyhelper"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/net"
-	"strings"
 )
 
 func buildSnapshotData(config *internal.Config, data *graphData) map[resource.Type][]cachetypes.Resource {
@@ -160,8 +161,7 @@ func makeLoadAssignment(clusterName string, svcPortData ServicePortData) *endpoi
 }
 
 func makeEndpoints(endpoints []ServiceEndpoint) []*endpointv3.LocalityLbEndpoints {
-	var addresses []*corev3.Address
-
+	addresses := make([]*corev3.Address, 0, len(endpoints))
 	for _, ep := range endpoints {
 		addresses = append(addresses, envoyhelper.IPAddress(
 			ep.AddrPort.Addr().String(),

@@ -2,10 +2,11 @@ package internal
 
 import (
 	"flag"
-	corev1 "k8s.io/api/core/v1"
 	"net"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"strings"
+
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 const (
@@ -21,9 +22,11 @@ type IngressStatusAddress struct {
 }
 
 type Config struct {
-	MetricsAddr string
-	HealthAddr  string
-	XDSAddr     string
+	MetricsAddr           string
+	HealthAddr            string
+	XDSAddr               string
+	XDSTLSCertificatePath string
+	XDSTLSKeyPath         string
 
 	XDSClusterName string
 
@@ -50,8 +53,10 @@ func ParseConfig() (*Config, zap.Options) {
 
 	flag.StringVar(&config.MetricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&config.HealthAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.StringVar(&config.XDSAddr, "xds-bind-address", ":50051", "The address the xDS endpoint binds to.")
 
+	flag.StringVar(&config.XDSAddr, "xds-bind-address", ":50051", "The address the xDS endpoint binds to.")
+	flag.StringVar(&config.XDSTLSCertificatePath, "xds-tls-certificate-path", "", "Path to TLS certificate to use for xDS listener, disables TLS when not provided.")
+	flag.StringVar(&config.XDSTLSKeyPath, "xds-tls-key-path", "", "Path to TLS key to use for xDS listener, disables TLS when not provided.")
 	flag.StringVar(&config.XDSClusterName, "xds-cluster-name", "xds-servicelb", "XDS cluster name to use for EDS")
 
 	flag.BoolVar(&config.EnableLeaderElection, "leader-elect", false,

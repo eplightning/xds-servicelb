@@ -32,8 +32,8 @@ func (s *Supervisor) Start(ctx context.Context) error {
 	errCh := make(chan error, len(s.services))
 
 	for _, svc := range s.services {
+		wg.Add(1)
 		go func(svc SupervisedService) {
-			wg.Add(1)
 			errCh <- svc.Start(cancelCtx)
 			wg.Done()
 		}(svc)

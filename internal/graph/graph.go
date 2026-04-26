@@ -3,12 +3,13 @@ package graph
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	"github.com/eplightning/xds-servicelb/internal"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/types"
-	"sync"
-	"time"
 )
 
 const (
@@ -29,7 +30,7 @@ type ServiceGraph struct {
 	mut     sync.Mutex
 
 	closed   bool
-	signalCh chan interface{}
+	signalCh chan any
 }
 
 func NewServiceGraph(config *internal.Config, logger logr.Logger) *ServiceGraph {
@@ -38,7 +39,7 @@ func NewServiceGraph(config *internal.Config, logger logr.Logger) *ServiceGraph 
 		data:     newGraphData(),
 		l:        logger,
 		sc:       cache.NewSnapshotCache(false, constHash{}, nil),
-		signalCh: make(chan interface{}, 1),
+		signalCh: make(chan any, 1),
 	}
 }
 
@@ -92,7 +93,7 @@ func (g *ServiceGraph) Conflicts(name types.NamespacedName, port ServicePort) bo
 			continue
 		}
 
-		for svcPort, _ := range data.Ports {
+		for svcPort := range data.Ports {
 			if svcPort.Port == port.Port && svcPort.Protocol == port.Protocol {
 				return true
 			}
