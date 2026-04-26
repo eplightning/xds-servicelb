@@ -2,13 +2,16 @@ package xds
 
 import (
 	"context"
+	"crypto/tls"
+	"net"
+	"time"
+
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	xds "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	"github.com/go-logr/logr"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
-	"net"
-	"time"
 
 	clusterservice "github.com/envoyproxy/go-control-plane/envoy/service/cluster/v3"
 	discoverygrpc "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -24,7 +27,9 @@ const (
 )
 
 type XDSOptions struct {
-	Address string
+	Address            string
+	TLSCertificatePath string
+	TLSKeyPath         string
 }
 
 type XDSServer struct {
@@ -62,6 +67,15 @@ func (srv *XDSServer) Start(ctx context.Context) error {
 		}),
 	)
 
+	if srv.options.TLSCertificatePath != "" && srv.options.TLSKeyPath != "" {
+		cert := NewDynamicCert(srv.options.TLSCertificatePath, srv.options.TLSKeyPath, 5*time.Minute)
+		tlsConfig := &tls.Config{
+			GetCertificate: cert.GetCertificate,
+		}
+
+		grpcOptions = append(grpcOptions, grpc.Creds(credentials.NewTLS(tlsConfig)))
+	}
+
 	srv.server = xds.NewServer(ctx, srv.snapshotCache, nil)
 	srv.grpcServer = grpc.NewServer(grpcOptions...)
 
@@ -74,7 +88,6 @@ func (srv *XDSServer) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
 	srv.lis = lis
 
 	go func() {

@@ -1,6 +1,9 @@
 package envoyhelper
 
 import (
+	"net/netip"
+	"time"
+
 	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -10,8 +13,6 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"k8s.io/utils/net"
-	"net/netip"
-	"time"
 )
 
 func DurationToProto(d *time.Duration) *durationpb.Duration {
@@ -52,8 +53,7 @@ func LocalityLBEndpoints(addrs ...*corev3.Address) []*endpointv3.LocalityLbEndpo
 }
 
 func AnyRBACPolicy(ips []netip.Prefix) *rbacv3.Policy {
-	var principals []*rbacv3.Principal
-
+	principals := make([]*rbacv3.Principal, 0, len(ips))
 	for _, ip := range ips {
 		principals = append(principals, &rbacv3.Principal{
 			Identifier: &rbacv3.Principal_RemoteIp{

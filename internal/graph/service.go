@@ -2,9 +2,10 @@ package graph
 
 import (
 	"fmt"
-	"k8s.io/utils/net"
 	"net/netip"
 	"time"
+
+	"k8s.io/utils/net"
 )
 
 type ServiceEndpoint struct {
